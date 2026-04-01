@@ -11,8 +11,10 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { loadQuickCommands, saveQuickCommands, type QuickCommand } from "@/lib/quick-commands";
 import { loadSavedSessions, saveSessions, type SavedSession } from "@/lib/saved-sessions";
 import { loadTerminalSettings, saveTerminalSettings, type TerminalSettings } from "@/lib/terminal-settings";
+import { loadTriggers, saveTriggers, type Trigger } from "@/lib/triggers";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
+import { TriggerManager } from "@/components/TriggerManager";
 import {
   Plus, X, TerminalSquare, Globe, Usb, Zap, Binary,
 } from "lucide-react";
@@ -96,6 +98,10 @@ function App() {
   const [savedSessions, setSavedSessions] = useState<SavedSession[]>([]);
   const [showSessionManager, setShowSessionManager] = useState(false);
 
+  // Triggers
+  const [triggers, setTriggers] = useState<Trigger[]>([]);
+  const [showTriggerManager, setShowTriggerManager] = useState(false);
+
   // Layout visibility
   const [showSidebar, setShowSidebar] = useState(true);
   const [showBottomPanel, setShowBottomPanel] = useState(true);
@@ -126,6 +132,7 @@ function App() {
     loadQuickCommands().then(setQuickCommands);
     loadSavedSessions().then(setSavedSessions);
     loadTerminalSettings().then(setTerminalSettings);
+    loadTriggers().then(setTriggers);
     invoke<Record<string, unknown> | null>("config_read", { key: "layout" }).then((data) => {
       if (!data) return;
       if (typeof data.showSidebar === "boolean") setShowSidebar(data.showSidebar);
@@ -201,6 +208,20 @@ function App() {
     setTerminalSettings(s);
     saveTerminalSettings(s);
     setShowSettings(false);
+  }, []);
+
+  const handleSaveTriggers = useCallback((t: Trigger[]) => {
+    setTriggers(t);
+    saveTriggers(t);
+    setShowTriggerManager(false);
+  }, []);
+
+  const handleToggleTrigger = useCallback((id: string) => {
+    setTriggers((prev) => {
+      const next = prev.map((t) => (t.id === id ? { ...t, enabled: !t.enabled } : t));
+      saveTriggers(next);
+      return next;
+    });
   }, []);
 
   const setTerminalRef = useCallback(
@@ -332,8 +353,11 @@ function App() {
         {/* Sidebar */}
         <Sidebar
           sessions={savedSessions}
+          triggers={triggers}
           onOpenSession={addTab}
           onManageSessions={() => setShowSessionManager(true)}
+          onManageTriggers={() => setShowTriggerManager(true)}
+          onToggleTrigger={handleToggleTrigger}
           onSettings={() => setShowSettings(true)}
           visible={showSidebar}
           onVisibleChange={setShowSidebar}
@@ -431,9 +455,14 @@ function App() {
                   ref={setTerminalRef(tab.id)}
                   config={tab.config}
                   settings={terminalSettings}
+                  triggers={triggers}
                   active={activeTab === tab.id}
                   onOutput={onTerminalOutput(tab.id)}
                   onResize={onTerminalResize(tab.id)}
+                  onSendCommand={(cmd) => {
+                    const handle = terminalRefs.current.get(tab.id);
+                    if (handle) handle.sendCommand(cmd);
+                  }}
                 />
               ))
             )}
@@ -473,6 +502,14 @@ function App() {
         settings={terminalSettings}
         onSave={handleSaveSettings}
         onCancel={() => setShowSettings(false)}
+      />
+
+      {/* Trigger Manager */}
+      <TriggerManager
+        open={showTriggerManager}
+        triggers={triggers}
+        onSave={handleSaveTriggers}
+        onCancel={() => setShowTriggerManager(false)}
       />
 
       {/* Status Bar */}

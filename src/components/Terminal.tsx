@@ -7,6 +7,7 @@ import "@xterm/xterm/css/xterm.css";
 
 import { cn } from "@/lib/utils";
 import { type TerminalSettings, getTheme } from "@/lib/terminal-settings";
+import type { Trigger } from "@/lib/triggers";
 
 export type ConnectionType = "pty" | "ssh" | "serial";
 
@@ -37,8 +38,10 @@ interface TerminalProps {
   config: ConnectionConfig;
   active: boolean;
   settings: TerminalSettings;
+  triggers?: Trigger[];
   onOutput?: (data: string) => void;
   onResize?: (rows: number, cols: number) => void;
+  onSendCommand?: (command: string) => void;
 }
 
 export interface TerminalHandle {
@@ -47,7 +50,7 @@ export interface TerminalHandle {
 }
 
 export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
-  function Terminal({ config, active, settings, onOutput, onResize }, ref) {
+  function Terminal({ config, active, settings, triggers, onOutput, onResize, onSendCommand }, ref) {
   const termRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -56,6 +59,10 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
   onOutputRef.current = onOutput;
   const onResizeRef = useRef(onResize);
   onResizeRef.current = onResize;
+  const triggersRef = useRef(triggers);
+  triggersRef.current = triggers;
+  const onSendCommandRef = useRef(onSendCommand);
+  onSendCommandRef.current = onSendCommand;
 
   useImperativeHandle(ref, () => ({
     sendCommand: (command: string) => {
@@ -137,6 +144,22 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         (event) => {
           xterm.write(event.payload);
           onOutputRef.current?.(event.payload);
+          // Auto-command triggers
+          const ts = triggersRef.current;
+          if (ts) {
+            for (const trigger of ts) {
+              if (!trigger.enabled || !trigger.actions.autoCommand) continue;
+              try {
+                const re = new RegExp(trigger.pattern);
+                if (re.test(event.payload)) {
+                  const cmd = trigger.actions.autoCommand.endsWith("\n")
+                    ? trigger.actions.autoCommand
+                    : trigger.actions.autoCommand + "\n";
+                  onSendCommandRef.current?.(cmd);
+                }
+              } catch {}
+            }
+          }
         }
       );
 
@@ -208,6 +231,104 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
     xterm.options.theme = getTheme(settings);
     fitAddonRef.current?.fit();
   }, [settings]);
+
+  // Register trigger link providers (highlight, tooltip, click)
+  useEffect(() => {
+    const xterm = xtermRef.current;
+    if (!xterm || !triggers || triggers.length === 0) return;
+
+    const enabledTriggers = triggers.filter(
+      (t) => t.enabled && (t.actions.highlight || t.actions.tooltip || t.actions.clickCommand)
+    );
+    if (enabledTriggers.length === 0) return;
+
+    const disposables: { dispose: () => void }[] = [];
+
+    for (const trigger of enabledTriggers) {
+      let re: RegExp;
+      try {
+        re = new RegExp(trigger.pattern, "g");
+      } catch {
+        continue;
+      }
+
+      const disp = xterm.registerLinkProvider({
+        provideLinks: (bufferLineNumber, callback) => {
+          const line = xterm.buffer.active.getLine(bufferLineNumber - 1);
+          if (!line) { callback(undefined); return; }
+          const text = line.translateToString(true);
+          re.lastIndex = 0;
+          const links: any[] = [];
+          let match: RegExpExecArray | null;
+          while ((match = re.exec(text)) !== null) {
+            const startX = match.index;
+            const length = match[0].length;
+            if (length === 0) { re.lastIndex++; continue; }
+            links.push({
+              range: {
+                start: { x: startX + 1, y: bufferLineNumber },
+                end: { x: startX + length + 1, y: bufferLineNumber },
+              },
+              text: match[0],
+              activate: () => {
+                if (trigger.actions.clickCommand) {
+                  const cmd = trigger.actions.clickCommand.endsWith("\n")
+                    ? trigger.actions.clickCommand
+                    : trigger.actions.clickCommand + "\n";
+                  onSendCommandRef.current?.(cmd);
+                }
+              },
+              hover: (event: MouseEvent, text: string) => {
+                if (!trigger.actions.tooltip && !trigger.actions.clickCommand) return;
+                // Remove any existing trigger tooltip
+                document.querySelectorAll(".xterm-trigger-tooltip").forEach((el) => el.remove());
+                const tip = document.createElement("div");
+                tip.className = "xterm-trigger-tooltip";
+                const parts: string[] = [];
+                if (trigger.actions.tooltip) parts.push(trigger.actions.tooltip);
+                if (trigger.actions.clickCommand) parts.push(`Click to run: ${trigger.actions.clickCommand}`);
+                tip.textContent = parts.join(" | ");
+                tip.style.cssText = `
+                  position: fixed;
+                  z-index: 9999;
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                  font-size: 11px;
+                  max-width: 300px;
+                  pointer-events: none;
+                  white-space: nowrap;
+                  background: var(--popover);
+                  color: var(--popover-foreground);
+                  border: 1px solid var(--border);
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                  left: ${event.clientX + 8}px;
+                  top: ${event.clientY - 28}px;
+                `;
+                document.body.appendChild(tip);
+              },
+              leave: () => {
+                document.querySelectorAll(".xterm-trigger-tooltip").forEach((el) => el.remove());
+              },
+              decorations: trigger.actions.highlight
+                ? {
+                    pointerCursor: !!trigger.actions.clickCommand,
+                    underline: !!trigger.actions.clickCommand,
+                    overviewRulerColor: trigger.actions.highlight,
+                  }
+                : undefined,
+            });
+          }
+          callback(links.length > 0 ? links : undefined);
+        },
+      });
+      disposables.push(disp);
+    }
+
+    return () => {
+      disposables.forEach((d) => d.dispose());
+      document.querySelectorAll(".xterm-trigger-tooltip").forEach((el) => el.remove());
+    };
+  }, [triggers]);
 
   return (
     <div

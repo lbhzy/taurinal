@@ -10,16 +10,21 @@ import {
   Settings,
   Trash2,
   Play,
+  Zap,
 } from "lucide-react";
 import type { SavedSession } from "@/lib/saved-sessions";
+import type { Trigger } from "@/lib/triggers";
 import type { ConnectionConfig } from "./Terminal";
 
-type SidebarPanel = "sessions" | null;
+type SidebarPanel = "sessions" | "triggers" | null;
 
 interface SidebarProps {
   sessions: SavedSession[];
+  triggers: Trigger[];
   onOpenSession: (config: ConnectionConfig) => void;
   onManageSessions: () => void;
+  onManageTriggers: () => void;
+  onToggleTrigger: (id: string) => void;
   onSettings: () => void;
   visible: boolean;
   onVisibleChange: (visible: boolean) => void;
@@ -51,8 +56,11 @@ function getSessionDescription(config: ConnectionConfig): string {
 
 export function Sidebar({
   sessions,
+  triggers,
   onOpenSession,
   onManageSessions,
+  onManageTriggers,
+  onToggleTrigger,
   onSettings,
   visible,
   onVisibleChange,
@@ -126,6 +134,21 @@ export function Sidebar({
               <div className="absolute left-0 top-1 bottom-1 w-[2px] bg-primary rounded-r" />
             )}
           </button>
+          <button
+            className={cn(
+              "flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150 relative",
+              activePanel === "triggers"
+                ? "text-foreground"
+                : "text-muted-foreground/60 hover:text-foreground/80"
+            )}
+            onClick={() => togglePanel("triggers")}
+            title="Triggers"
+          >
+            <Zap className="size-[18px]" />
+            {activePanel === "triggers" && (
+              <div className="absolute left-0 top-1 bottom-1 w-[2px] bg-primary rounded-r" />
+            )}
+          </button>
         </div>
         <div className="flex flex-col items-center gap-1">
           <button
@@ -187,6 +210,81 @@ export function Sidebar({
                         </div>
                         <Play className="size-3 text-primary/0 group-hover:text-primary/60 shrink-0 transition-all duration-150" />
                       </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {activePanel === "triggers" && (
+            <>
+              {/* Panel header */}
+              <div className="flex items-center justify-between px-3 h-9 border-b border-border/50 shrink-0">
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                  Triggers
+                </span>
+                <button
+                  className="flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground/50 hover:text-foreground/80 hover:bg-accent/40 transition-colors"
+                  onClick={onManageTriggers}
+                  title="Manage triggers"
+                >
+                  <Settings className="size-3.5" />
+                </button>
+              </div>
+
+              {/* Trigger list */}
+              <div className="flex-1 overflow-y-auto scrollbar-thin">
+                {triggers.length === 0 ? (
+                  <div className="p-4 text-xs text-muted-foreground/60 text-center leading-relaxed">
+                    No triggers configured.
+                    <br />
+                    Click the gear icon to add one.
+                  </div>
+                ) : (
+                  <div className="py-0.5">
+                    {triggers.map((trigger) => (
+                      <div
+                        key={trigger.id}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-accent/40 transition-all duration-100 group"
+                      >
+                        {/* Switch */}
+                        <button
+                          className={cn(
+                            "relative w-7 h-4 rounded-full transition-colors shrink-0",
+                            trigger.enabled ? "bg-primary" : "bg-muted-foreground/30"
+                          )}
+                          onClick={() => onToggleTrigger(trigger.id)}
+                          title={trigger.enabled ? "Disable" : "Enable"}
+                        >
+                          <div
+                            className={cn(
+                              "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform",
+                              trigger.enabled ? "translate-x-3.5" : "translate-x-0.5"
+                            )}
+                          />
+                        </button>
+
+                        {/* Color dot */}
+                        {trigger.actions.highlight && (
+                          <div
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: trigger.actions.highlight }}
+                          />
+                        )}
+
+                        <div className="min-w-0 flex-1">
+                          <div className={cn(
+                            "text-[13px] truncate transition-colors",
+                            trigger.enabled ? "text-foreground/85" : "text-muted-foreground/50"
+                          )}>
+                            {trigger.name}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground/50 truncate font-mono">
+                            /{trigger.pattern}/
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
