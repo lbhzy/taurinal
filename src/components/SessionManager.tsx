@@ -29,6 +29,8 @@ interface SessionManagerProps {
   onCancel: () => void;
 }
 
+const COMMON_BAUD_RATES = [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600] as const;
+
 export function SessionManager({
   open,
   sessions: initialSessions,
@@ -55,6 +57,7 @@ export function SessionManager({
   const [serialPorts, setSerialPorts] = useState<SerialPortInfo[]>([]);
   const [portName, setPortName] = useState("");
   const [baudRate, setBaudRate] = useState(115200);
+  const [baudRateInput, setBaudRateInput] = useState("115200");
 
   useEffect(() => {
     if (open) {
@@ -87,6 +90,7 @@ export function SessionManager({
     setKeyPath("~/.ssh/id_rsa");
     setPortName("");
     setBaudRate(115200);
+    setBaudRateInput("115200");
     setEditingId(null);
   };
 
@@ -108,9 +112,22 @@ export function SessionManager({
       case "serial":
         setPortName(session.config.portName);
         setBaudRate(session.config.baudRate);
+        setBaudRateInput(String(session.config.baudRate));
         break;
     }
   };
+
+  const onBaudRateInputChange = (value: string) => {
+    setBaudRateInput(value);
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      setBaudRate(parsed);
+    }
+  };
+
+  const selectedCommonBaudRate = COMMON_BAUD_RATES.some((rate) => rate === baudRate)
+    ? String(baudRate)
+    : "custom";
 
   const buildConfig = (): ConnectionConfig => {
     switch (connType) {
@@ -390,19 +407,32 @@ export function SessionManager({
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Baud Rate</Label>
-                <Select
-                  value={baudRate}
-                  onChange={(e) => setBaudRate(Number(e.target.value))}
-                  className="h-8 text-xs"
-                >
-                  {[9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600].map(
-                    (rate) => (
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={baudRateInput}
+                    onChange={(e) => onBaudRateInputChange(e.target.value)}
+                    className="h-8 text-xs flex-1"
+                    placeholder="115200"
+                  />
+                  <Select
+                    value={selectedCommonBaudRate}
+                    onChange={(e) => {
+                      if (e.target.value === "custom") return;
+                      onBaudRateInputChange(e.target.value);
+                    }}
+                    className="h-8 text-xs w-[118px]"
+                  >
+                    <option value="custom">Custom</option>
+                    {COMMON_BAUD_RATES.map((rate) => (
                       <option key={rate} value={rate}>
                         {rate}
                       </option>
-                    )
-                  )}
-                </Select>
+                    ))}
+                  </Select>
+                </div>
               </div>
             </div>
           )}
