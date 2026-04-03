@@ -52,33 +52,25 @@ function getTabIcon(type: ConnectionConfig["type"]) {
 // VS Code-style layout icons (codicons)
 function SidebarLeftIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 2h12v12H2V2zm1 1v10h3V3H3zm4 0v10h6V3H7z" fill="currentColor" />
-    </svg>
+    <svg width="18" height="18" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M12.5 1C13.881 1 15 2.119 15 3.5V12.5C15 13.881 13.881 15 12.5 15H3.5C2.119 15 1 13.881 1 12.5V3.5C1 2.119 2.119 1 3.5 1H12.5ZM12.5 14C13.328 14 14 13.328 14 12.5V3.5C14 2.672 13.328 2 12.5 2H7V14H12.5Z"/></svg>
   );
 }
 
 function SidebarLeftOffIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 2h12v12H2V2zm1 1v10h3V3H3zm4 0v10h6V3H7z" fill="currentColor" fillOpacity="0.4" />
-    </svg>
+    <svg width="18" height="18" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M1 3.5V12.5C1 13.879 2.122 15 3.5 15H12.5C13.878 15 15 13.879 15 12.5V3.5C15 2.122 13.878 1 12.5 1H3.5C2.122 1 1 2.122 1 3.5ZM12.5 14H7V2H12.5C13.327 2 14 2.673 14 3.5V12.5C14 13.327 13.327 14 12.5 14ZM2 3.5C2 2.673 2.673 2 3.5 2H6V14H3.5C2.673 14 2 13.327 2 12.5V3.5Z"/></svg>
   );
 }
 
 function PanelBottomIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 2h12v12H2V2zm1 1v6h10V3H3zm0 7v3h10v-3H3z" fill="currentColor" />
-    </svg>
+    <svg width="18" height="18" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M15 12.5C15 13.881 13.881 15 12.5 15H3.5C2.119 15 1 13.881 1 12.5V3.5C1 2.119 2.119 1 3.5 1H12.5C13.881 1 15 2.119 15 3.5V12.5ZM2 10H14V3.5C14 2.672 13.328 2 12.5 2H3.5C2.672 2 2 2.672 2 3.5V10Z"/></svg>
   );
 }
 
 function PanelBottomOffIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 2h12v12H2V2zm1 1v6h10V3H3zm0 7v3h10v-3H3z" fill="currentColor" fillOpacity="0.4" />
-    </svg>
+    <svg width="18" height="18" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M12.5 1H3.5C2.122 1 1 2.121 1 3.5V12.5C1 13.879 2.122 15 3.5 15H12.5C13.878 15 15 13.879 15 12.5V3.5C15 2.121 13.878 1 12.5 1ZM14 12.5C14 13.327 13.327 14 12.5 14H3.5C2.673 14 2 13.327 2 12.5V11H14V12.5ZM14 10H2V3.5C2 2.673 2.673 2 3.5 2H12.5C13.327 2 14 2.673 14 3.5V10Z"/></svg>
   );
 }
 
@@ -382,10 +374,9 @@ function App() {
         <div className="flex items-center gap-0.5 px-2 shrink-0 titlebar-buttons">
           <button
             className={cn(
-              "flex items-center justify-center h-7 w-7 rounded transition-colors duration-100",
-              showSidebar
-                ? "text-foreground/90"
-                : "text-muted-foreground/50 hover:text-foreground/70"
+              "flex items-center justify-center h-6 w-6 rounded transition-colors duration-100",
+              "hover:bg-secondary/80",
+              "text-foreground/90"
             )}
             onClick={() => setShowSidebar((v) => !v)}
             title={showSidebar ? "Hide sidebar" : "Show sidebar"}
@@ -394,10 +385,9 @@ function App() {
           </button>
           <button
             className={cn(
-              "flex items-center justify-center h-7 w-7 rounded transition-colors duration-100",
-              showBottomPanel
-                ? "text-foreground/90"
-                : "text-muted-foreground/50 hover:text-foreground/70"
+              "flex items-center justify-center h-6 w-6 rounded transition-colors duration-100",
+              "hover:bg-secondary/80",
+              "text-foreground/90"
             )}
             onClick={() => setShowBottomPanel((v) => !v)}
             title={showBottomPanel ? "Hide bottom panel" : "Show bottom panel"}
