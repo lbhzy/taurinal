@@ -124,7 +124,7 @@ export function SettingsDialog({
               <SelectTrigger>
                 <SelectValue placeholder="Select app theme" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-72">
                 <SelectGroup>
                   <SelectLabel>Dark</SelectLabel>
                   {APP_THEMES.filter((t) => t.dark).map((t) => (
@@ -151,7 +151,7 @@ export function SettingsDialog({
               <SelectTrigger>
                 <SelectValue placeholder="Select terminal theme" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-72">
                 <SelectGroup>
                   <SelectLabel>Dark</SelectLabel>
                   {darkThemes.map((name) => (
@@ -200,7 +200,7 @@ export function SettingsDialog({
                 <SelectTrigger>
                   <SelectValue placeholder="Select font family" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-72">
                   {allFonts.length === 0 && (
                     <SelectItem value={NO_FONTS_VALUE} disabled>
                       {normalizedPrimaryFont || "No fonts found"}
@@ -228,7 +228,7 @@ export function SettingsDialog({
                 <SelectTrigger>
                   <SelectValue placeholder="Select fallback font" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-72">
                   <SelectItem value={NONE_OPTION_VALUE}>None</SelectItem>
                   {allFonts.map((font) => (
                     <SelectItem key={font} value={font}>
@@ -270,7 +270,7 @@ export function SettingsDialog({
                 <SelectTrigger>
                   <SelectValue placeholder="Select cursor style" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-72">
                   <SelectItem value="block">Block</SelectItem>
                   <SelectItem value="underline">Underline</SelectItem>
                   <SelectItem value="bar">Bar</SelectItem>
@@ -286,7 +286,7 @@ export function SettingsDialog({
                 <SelectTrigger>
                   <SelectValue placeholder="Select cursor blink" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-72">
                   <SelectItem value="on">On</SelectItem>
                   <SelectItem value="off">Off</SelectItem>
                 </SelectContent>

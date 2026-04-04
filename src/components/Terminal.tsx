@@ -143,6 +143,9 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       fontSize: settings.fontSize,
       fontFamily: getResolvedFontFamily(settings),
       theme: getTheme(settings),
+      scrollback: 100000,
+      lineHeight: 1.1,
+      fontWeight: 600,
     });
 
     const fitAddon = new FitAddon();
