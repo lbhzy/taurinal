@@ -36,23 +36,21 @@ pub async fn ssh_connect(
     rows: u16,
     cols: u16,
 ) -> Result<u32, String> {
-    let ssh_timeout = Duration::from_secs(2);
     let config = Arc::new(client::Config::default());
     let addr = format!("{}:{}", host, port);
-    let mut session = timeout(ssh_timeout, client::connect(config, addr, TauriSshClient::default()))
+    let mut session = timeout(
+        Duration::from_secs(10),
+        client::connect(config, addr, TauriSshClient::default()),
+    )
         .await
-        .map_err(|_| "SSH connect timed out (2s)".to_string())?
+        .map_err(|_| "SSH connect timed out (10s)".to_string())?
         .map_err(|e| format!("SSH connect failed: {}", e))?;
 
     match auth_method.as_str() {
         "password" => {
             let pwd = password.ok_or("Password required")?;
-            let auth = timeout(
-                ssh_timeout,
-                session.authenticate_password(username.clone(), pwd),
-            )
+            let auth = session.authenticate_password(username.clone(), pwd)
                 .await
-                .map_err(|_| "SSH password auth timed out (2s)".to_string())?
                 .map_err(|e| format!("SSH password auth failed: {}", e))?;
 
             if !auth.success() {
@@ -63,21 +61,16 @@ pub async fn ssh_connect(
             let key = key_path.ok_or("Key path required")?;
             let key_pair = keys::load_secret_key(Path::new(&key), password.as_deref())
                 .map_err(|e| format!("SSH key parse failed: {}", e))?;
-            let best_hash = timeout(ssh_timeout, session.best_supported_rsa_hash())
+            let best_hash = session.best_supported_rsa_hash()
                 .await
-                .map_err(|_| "SSH key hash negotiation timed out (2s)".to_string())?
                 .map_err(|e| format!("SSH key hash negotiation failed: {}", e))?
                 .flatten();
 
-            let auth = timeout(
-                ssh_timeout,
-                session.authenticate_publickey(
+            let auth = session.authenticate_publickey(
                     username.clone(),
                     PrivateKeyWithHashAlg::new(Arc::new(key_pair), best_hash),
-                ),
-            )
+                )
                 .await
-                .map_err(|_| "SSH key auth timed out (2s)".to_string())?
                 .map_err(|e| format!("SSH key auth failed: {}", e))?;
 
             if !auth.success() {
@@ -87,22 +80,16 @@ pub async fn ssh_connect(
         _ => return Err(format!("Unknown auth method: {}", auth_method)),
     }
 
-    let channel = timeout(ssh_timeout, session.channel_open_session())
+    let channel = session.channel_open_session()
         .await
-        .map_err(|_| "SSH channel open timed out (2s)".to_string())?
         .map_err(|e| format!("SSH channel error: {}", e))?;
 
-    timeout(
-        ssh_timeout,
-        channel.request_pty(true, "xterm-256color", cols as u32, rows as u32, 0, 0, &[]),
-    )
+    channel.request_pty(true, "xterm-256color", cols as u32, rows as u32, 0, 0, &[])
         .await
-        .map_err(|_| "SSH pty request timed out (2s)".to_string())?
         .map_err(|e| format!("SSH pty request failed: {}", e))?;
 
-    timeout(ssh_timeout, channel.request_shell(true))
+    channel.request_shell(true)
         .await
-        .map_err(|_| "SSH shell request timed out (2s)".to_string())?
         .map_err(|e| format!("SSH shell request failed: {}", e))?;
 
     let (session_id, mut cmd_rx) = state.create_channel();
